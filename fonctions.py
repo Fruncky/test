@@ -1,4 +1,4 @@
-# fonctions.py
+# fonctions.py que paso jose 
 import pandas as pd
 
 def filtrer_annees_completes(df):
