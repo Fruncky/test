@@ -247,3 +247,39 @@ def plot_saisonnalite_bar_par_pays_input(df):
     plt.grid(axis="y", linestyle="--", alpha=0.5)
     plt.tight_layout()
     plt.show()
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+def plot_ventes_genre_saisonnalite(df, annee=2015):
+    # Conversion de la date et extraction des mois
+    df['Date'] = pd.to_datetime(df['Date'])
+    df['Month'] = df['Date'].dt.month_name()
+    df['Month_num'] = df['Date'].dt.month
+    df['Year'] = df['Date'].dt.year
+
+    # Filtrer la dernière année complète connue
+    df_annee = df[df['Year'] == annee].copy()
+    # Ordonner les mois pour affichage correct
+    mois_ordre = ['January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December']
+    df_annee['Month'] = pd.Categorical(df_annee['Month'], categories=mois_ordre, ordered=True)
+    
+    plt.figure(figsize=(15, 7))
+    sns.lineplot(
+        data=df_annee,
+        x='Month',
+        y='Order_Quantity',
+        hue='Customer_Gender',
+        style='Sub_Category',   # Pour différencier les sous-catégories
+        markers=True,
+        dashes=False,
+        ci=None
+    )
+    plt.title(f"Ventes de vélos par genre et sous-catégorie ({annee})")
+    plt.xlabel("Mois")
+    plt.ylabel("Quantité vendue")
+    plt.legend(title="Genre / Sous-catégorie", bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.show()
