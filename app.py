@@ -1,7 +1,9 @@
+
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import re
 from fonctions import filtrer_annees_completes
 
 # 🧪 Titre du dashboard
@@ -23,7 +25,7 @@ df["Month"] = df["Month_num"].map({
 pays_list = df["Country"].unique().tolist()
 pays_choisi = st.selectbox("Choisissez un pays :", pays_list)
 
-# 📊 Agrégation des ventes
+# 📊 Agrégation des ventes par pays
 df_pays = df[df["Country"] == pays_choisi].copy()
 mois_ordre = ['January', 'February', 'March', 'April', 'May', 'June',
               'July', 'August', 'September', 'October', 'November', 'December']
@@ -49,18 +51,33 @@ choix_produit = st.selectbox("Choisissez l'analyse produit :", [
 ])
 
 if choix_produit == "Top 10 produits (quantité vendue)":
-    top_produits = df.groupby("Product")["Order_Quantity"].sum().sort_values(ascending=False).head(10)
-    
+    # --- Regroupement par 'type' de produit (on enlève la taille s'il y en a une)
+    def clean_product_name(name):
+        # Enlève la taille (format: ", nombre" ou ", S/M/L/XL")
+        return re.split(r",\s*\d+|,\s*(XS|S|M|L|XL|XXL)?$", name)[0]
+
+    df_pays["Product_Type"] = df_pays["Product"].apply(clean_product_name)
+    top_types = (
+        df_pays.groupby("Product_Type")["Order_Quantity"]
+        .sum()
+        .sort_values(ascending=False)
+        .head(10)
+    )
+
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.barplot(x=top_produits.values, y=top_produits.index, palette="viridis", ax=ax)
-    ax.set_title("Top 10 produits les plus vendus")
+    sns.barplot(x=top_types.values, y=top_types.index, palette="viridis", ax=ax)
+    ax.set_title(f"Top 10 types de produits les plus vendus ({pays_choisi})")
     ax.set_xlabel("Quantité vendue")
-    ax.set_ylabel("Produit")
+    ax.set_ylabel("Type de produit")
     st.pyplot(fig)
 
 elif choix_produit == "Ventes par catégorie et sous-catégorie":
-    df_cat = df.groupby(["Product_Category", "Sub_Category"])["Order_Quantity"].sum().reset_index()
-
+    # --- Utilise le DataFrame filtré par pays
+    df_cat = (
+        df_pays.groupby(["Product_Category", "Sub_Category"])["Order_Quantity"]
+        .sum()
+        .reset_index()
+    )
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.barplot(
         data=df_cat,
@@ -68,7 +85,7 @@ elif choix_produit == "Ventes par catégorie et sous-catégorie":
         hue="Product_Category", dodge=False,
         palette="Set2", ax=ax
     )
-    ax.set_title("Ventes par sous-catégorie et catégorie")
+    ax.set_title(f"Ventes par sous-catégorie et catégorie ({pays_choisi})")
     ax.set_xlabel("Quantité vendue")
     ax.set_ylabel("Sous-catégorie")
     st.pyplot(fig)
